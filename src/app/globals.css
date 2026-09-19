@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #fff6e8;
+  --ink: #1d2a44;
+  --navy: #1e3a5f;
+  --gold: #e8b923;
+  --sky: #3b9ae1;
+  --leaf: #2f9e6a;
+  --coral: #e85d4c;
+  --card: #fffdf8;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-navy: var(--navy);
+  --color-gold: var(--gold);
+  --color-sky: var(--sky);
+  --color-leaf: var(--leaf);
+  --color-coral: var(--coral);
+  --color-card: var(--card);
+  --font-sans: var(--font-display);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 10%, #ffe7b8 0, transparent 28%),
+    radial-gradient(circle at 90% 0%, #cde9ff 0, transparent 26%),
+    var(--paper);
+  color: var(--ink);
+}
+
+.dot-grid {
+  background-image: radial-gradient(rgba(30, 58, 95, 0.08) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
