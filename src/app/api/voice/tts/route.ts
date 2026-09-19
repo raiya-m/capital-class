@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   const { text } = (await request.json()) as { text?: string };
-  const spoken = (text ?? "").replace(/\s+/g, " ").trim().slice(0, 500);
+  const spoken = (text ?? "").replace(/\s+/g, " ").trim().slice(0, 800);
   if (!spoken) return NextResponse.json({ error: "empty" }, { status: 400 });
 
   const res = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(MODEL)}&encoding=mp3`, {

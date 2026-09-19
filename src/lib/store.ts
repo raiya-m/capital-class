@@ -15,8 +15,9 @@ async function load(): Promise<StoreData> {
   if (cache && !needsReset(cache)) return cache;
   const parsed = await readDbPayload();
   if (!parsed || needsReset(parsed)) {
-    cache = createSeed();
-    await writeDbPayload(cache);
+    const fresh = createSeed();
+    await writeDbPayload(fresh);
+    cache = fresh;
     return cache;
   }
   cache = parsed;

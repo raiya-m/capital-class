@@ -1,25 +1,19 @@
 import { Card } from "@/components/ui/card";
 import { VoiceCoach } from "@/components/voice-coach";
-import { studentContext } from "@/lib/queries";
 
 export default async function CoachPage() {
-  const { profile, rank, wallet, invested, news, holdings, data, stats } = await studentContext();
-  const top = news[0]?.headline ?? "No incident yet";
-  const names = holdings
-    .map((h) => data.sectors.find((s) => s.slug === h.sectorSlug)?.ticker)
-    .filter(Boolean)
-    .join(", ");
-  const context = `${profile.displayName} is rank ${rank} of ${stats.students.length}. Cash ${Math.round(wallet.investmentCash)} dollars, holdings ${Math.round(invested)} dollars in ${names || "cash only"}. Latest incident: ${top}.`;
-  const studioVoice = Boolean(process.env.DEEPGRAM_API_KEY);
+  const deepgram = Boolean(process.env.DEEPGRAM_API_KEY);
+  const openai = Boolean(process.env.OPENAI_API_KEY);
 
   return (
     <div className="max-w-2xl space-y-4">
       <p className="text-base text-muted">
-        CapitalClass Coach talks about your tape and news incidents. This is a classroom helper, not real financial
-        advice.
+        CapitalClass Coach talks like your class teacher. Ask why a price moved, what the news means, or what you own.
+        For Talk, use Chrome or Safari at http://127.0.0.1:3000 and click Allow on the microphone prompt. Cursor&apos;s
+        in-app window usually cannot hear you even if Cursor has Mac mic access. You can always type instead.
       </p>
       <Card>
-        <VoiceCoach context={context} studioVoice={studioVoice} />
+        <VoiceCoach deepgram={deepgram} openai={openai} />
       </Card>
     </div>
   );

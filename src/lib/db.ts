@@ -1,6 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { mkdir } from "fs/promises";
 import path from "path";
+import { pathToFileURL } from "url";
 import type { StoreData } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
@@ -12,7 +13,7 @@ let ready: Promise<Client> | null = null;
 async function connect() {
   if (client) return client;
   await mkdir(DATA_DIR, { recursive: true });
-  client = createClient({ url: `file:${DB_PATH}` });
+  client = createClient({ url: pathToFileURL(DB_PATH).href });
   await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS app_state (
       id INTEGER PRIMARY KEY CHECK (id = 1),

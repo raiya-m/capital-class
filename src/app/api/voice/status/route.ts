@@ -7,5 +7,6 @@ export async function GET() {
   return NextResponse.json({
     tts: Boolean(process.env.DEEPGRAM_API_KEY),
     stt: Boolean(process.env.DEEPGRAM_API_KEY),
+    openai: Boolean(process.env.OPENAI_API_KEY),
   });
 }

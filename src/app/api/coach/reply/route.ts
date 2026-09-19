@@ -1,42 +1,64 @@
 import { getSessionProfile } from "@/lib/auth";
+import { liveCoachBriefing } from "@/lib/coach-briefing";
 import { NextResponse } from "next/server";
 
-type Body = { message?: string; context?: string };
+type Turn = { role?: string; text?: string };
+type Body = { message?: string; history?: Turn[] };
 
-function localReply(message: string, context: string) {
+function localReply(message: string, briefing: string) {
   const q = message.toLowerCase();
+  const newsLine = briefing.split("\n").find((line) => line.startsWith("Today's incident bulletin:")) ?? "";
   if (q.includes("diversif") || q.includes("all")) {
-    return "Spread tokens across at least two sectors so one news incident cannot sink the whole portfolio.";
+    return "Think of your shares like snacks in a lunchbox. If you put everything in one sector, one news story can mess up the whole day. Spread your next buy into a second sector.";
   }
   if (q.includes("news") || q.includes("incident") || q.includes("bulletin")) {
-    return "Read the green and red chips on the bulletin. Buy the sector the story helps, or wait if the jump already happened.";
+    return newsLine
+      ? `Here is today's class news: ${newsLine.replace("Today's incident bulletin: ", "")} If a story helps a sector, that is usually the one to look at. If it already jumped a lot, it is okay to wait.`
+      : "Read today's class news first. Green chips mean that sector had good news. Red chips mean it had a tough day.";
   }
   if (q.includes("rank") || q.includes("goal")) {
-    return "Rank follows portfolio value. Tokens in savings do not help the class investment goal — only invested cash and shares do.";
+    return "The class list is about the pretend money you invested, not tokens you saved for rewards. Savings tokens buy stickers and passes. Invested dollars help the class goal.";
   }
   if (q.includes("power") || q.includes("lightning") || q.includes("safety")) {
-    return "Lucky Lightning doubles the next up day. Safety Net halves the next down day. Buy them before the teacher breaks news.";
+    return "Lucky Lightning makes a good day twice as nice. Safety Net makes a bad day hurt half as much. Get one before your teacher posts a surprise story.";
   }
   if (q.includes("sell") || q.includes("buy")) {
-    return "Prices wiggle live. News incidents make the bigger jumps. Size buys so you still have cash for the next bulletin.";
+    return "Check what you already own, then read the news. Buy a little of the sector the story helps, and keep some cash for the next story.";
   }
-  if (context) {
-    return `Here is a classroom-safe take: ${context} Keep it pretend money, and match your trades to the latest incident.`;
-  }
-  return "Look at the trend chart, then the latest incident. Trade with the story, not against a surprise jump.";
+  return "Look at today's news and the sectors you already own. This is class practice money, so the point is to notice why a price moved.";
 }
 
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
   if (!profile) return NextResponse.json({ error: "auth" }, { status: 401 });
-  const { message, context } = (await request.json()) as Body;
+  if (profile.role !== "student") {
+    return NextResponse.json({ error: "students_only" }, { status: 403 });
+  }
+
+  const { message, history } = (await request.json()) as Body;
   const text = (message ?? "").trim();
   if (!text) return NextResponse.json({ error: "empty" }, { status: 400 });
 
+  let briefing = "";
+  try {
+    briefing = await liveCoachBriefing();
+  } catch {
+    briefing = "Live classroom tape could not be loaded.";
+  }
+
+  const fallback = localReply(text, briefing);
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ text: localReply(text, context ?? "") });
+    return NextResponse.json({ text: fallback, source: "local" });
   }
+
+  const prior = (history ?? [])
+    .filter((t) => t.text)
+    .slice(-8)
+    .map((t) => ({
+      role: t.role === "you" ? ("user" as const) : ("assistant" as const),
+      content: String(t.text),
+    }));
 
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -47,22 +69,47 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        temperature: 0.4,
+        temperature: 0.55,
+        max_tokens: 220,
         messages: [
           {
             role: "system",
-            content:
-              "You are CapitalClass Coach for kids 8-14. Two or three short sentences. No real financial advice, no politics, no scares. Use their classroom snapshot if given.",
+            content: `You are Ms. Coach, a warm middle school teacher for CapitalClass, a pretend classroom market for grades 6-8.
+
+Talk like you are explaining something at the board, not like a banker. Use everyday words. If you must use a market word (share, sector, percent), explain it in the same breath.
+
+Voice:
+- Sound like a patient teacher: encouraging, clear, a little upbeat.
+- Short sentences. Two to four of them. Easy to hear out loud.
+- You may say the student's first name.
+- No slang that feels adult-finance: no "positions", "tape", "alpha", "exposure", "liquidity", "thesis", "print", "book".
+- Prefer: news story, class dollars, shares you own, up or down, good day / tough day, spread your choices.
+
+What you know:
+You get a live briefing with this student's money, the shares they own, every sector price, today's class news, older news, the guessing question, power-ups, and class rank. Use those facts so the answer is about THEIR class, not a generic tip. Mention a headline or a sector they actually own when it helps.
+
+Rules:
+- This is pretend class money. Say that if they ask about real investing.
+- Never give real financial advice, never scare them, no politics, no emojis.
+- If they are worried about a drop, normalize it: markets in class go up and down so we can learn why.
+- End with a tiny next step they can do (read the news, check one sector, keep some cash).`,
           },
-          { role: "user", content: `Snapshot: ${context ?? "none"}\nStudent asked: ${text}` },
+          {
+            role: "user",
+            content: `Live CapitalClass briefing:\n${briefing}`,
+          },
+          ...prior,
+          { role: "user", content: text },
         ],
       }),
     });
-    if (!res.ok) return NextResponse.json({ text: localReply(text, context ?? "") });
+    if (!res.ok) {
+      return NextResponse.json({ text: fallback, source: "local" });
+    }
     const json = await res.json();
-    const spoken = json.choices?.[0]?.message?.content?.trim() || localReply(text, context ?? "");
-    return NextResponse.json({ text: spoken });
+    const spoken = json.choices?.[0]?.message?.content?.trim() || fallback;
+    return NextResponse.json({ text: spoken, source: "openai" });
   } catch {
-    return NextResponse.json({ text: localReply(text, context ?? "") });
+    return NextResponse.json({ text: fallback, source: "local" });
   }
 }
