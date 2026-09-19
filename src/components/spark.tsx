@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoneyExact } from "@/lib/utils";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export function Spark({
@@ -16,8 +17,8 @@ export function Spark({
           <XAxis dataKey="day" hide />
           <YAxis domain={["dataMin - 4", "dataMax + 4"]} hide />
           <Tooltip
-            formatter={(value) => [`$${Number(value).toFixed(2)}`, "Price"]}
-            labelFormatter={(label) => `Day ${label}`}
+            formatter={(value) => [formatMoneyExact(Number(value)), "Price"]}
+            labelFormatter={(label) => `Tick ${Number(label).toFixed(2)}`}
           />
           <Line type="monotone" dataKey="price" stroke={color} strokeWidth={3} dot={false} />
         </LineChart>

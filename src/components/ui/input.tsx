@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import type { HTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, LabelHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 const field =
-  "w-full rounded-2xl border-2 border-navy/15 bg-white px-3 py-2.5 text-sm font-medium text-ink outline-none focus:border-sky";
+  "w-full rounded-2xl border border-black/8 bg-[#F7F9F8] px-4 py-3 text-base text-ink outline-none focus:border-mint focus:bg-white";
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(field, className)} {...props} />;
@@ -13,9 +13,9 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn(field, className)} {...props} />;
+  return <textarea className={cn(field.replace("rounded-full", "rounded-2xl"), "min-h-24", className)} {...props} />;
 }
 
-export function Label({ className, ...props }: HTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn("mb-1 block text-xs font-bold uppercase tracking-wide text-navy/70", className)} {...props} />;
+export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
+  return <label className={cn("eyebrow mb-1.5 block", className)} {...props} />;
 }

@@ -6,8 +6,9 @@ export function proxy(request: NextRequest) {
   const session = request.cookies.get("cc_session")?.value;
   const isTeacher = pathname.startsWith("/teacher");
   const isStudent = pathname.startsWith("/student");
+  const isAdmin = pathname.startsWith("/admin");
 
-  if ((isTeacher || isStudent) && !session) {
+  if ((isTeacher || isStudent || isAdmin) && !session) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -17,5 +18,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/teacher/:path*", "/student/:path*", "/login", "/signup"],
+  matcher: ["/teacher/:path*", "/student/:path*", "/admin/:path*", "/login", "/signup"],
 };

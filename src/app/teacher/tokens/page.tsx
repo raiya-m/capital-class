@@ -1,56 +1,81 @@
 import { grantTokens } from "@/lib/actions";
 import { teacherContext } from "@/lib/queries";
+import { formatMoney, formatTokens } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/badge";
 
 export default async function TeacherTokensPage() {
-  const { stats, todayGrants, data } = await teacherContext();
+  const { stats, todayGrants, data, classroom } = await teacherContext();
   const names = Object.fromEntries(data.profiles.map((p) => [p.id, p.displayName]));
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-4xl font-black text-navy">Award tokens</h1>
-        <p className="font-medium text-navy/70">Catch students being excellent.</p>
-      </header>
+    <div className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
       <Card>
-        <form action={grantTokens} className="space-y-4">
-          <Label>Students</Label>
-          <div className="grid gap-2 sm:grid-cols-2">
+        <h2 className="text-xl font-semibold text-navy">Award tokens</h2>
+        <p className="mt-1 text-base text-muted">
+          Tokens start unspent. Students send them to savings or convert them to market dollars.
+        </p>
+        <form action={grantTokens} className="mt-4">
+          <div className="overflow-hidden rounded-2xl border border-black/5">
+            <div className="grid grid-cols-[auto_1fr_auto] gap-3 bg-[#F7FAF8] px-4 py-2 text-sm font-semibold text-muted">
+              <span />
+              <span>Student</span>
+              <span>Portfolio</span>
+            </div>
             {stats.students.map((row) => (
-              <label key={row.student.id} className="flex items-center gap-2 rounded-2xl bg-navy/5 px-3 py-2 font-bold">
-                <input type="checkbox" name="studentIds" value={row.student.id} className="size-4" />
-                {row.student.displayName}
+              <label
+                key={row.student.id}
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-t border-black/5 px-4 py-3"
+              >
+                <input type="checkbox" name="studentIds" value={row.student.id} className="size-4 accent-[#3ecf8e]" />
+                <span className="flex items-center gap-3">
+                  <Avatar name={row.student.displayName} />
+                  <span className="text-base font-semibold text-navy">{row.student.displayName}</span>
+                </span>
+                <span className="text-base font-medium">{formatMoney(row.value)}</span>
               </label>
             ))}
           </div>
-          <div>
-            <Label>Amount</Label>
-            <Input name="amount" type="number" min={1} defaultValue={1} />
+          <div className="mt-6">
+            <Label>Tokens to award</Label>
+            <Input name="amount" type="number" min={1} defaultValue={2} />
           </div>
-          <div>
+          <div className="mt-4">
             <Label>Reason</Label>
-            <Textarea name="reason" required placeholder="Held the door and helped clean up" />
+            <Textarea name="reason" required placeholder="Helped a classmate, finished the lab, strong group work" />
           </div>
-          <Button type="submit" tone="gold">
-            Give tokens
+          <Button className="mt-5 w-full" type="submit">
+            Award tokens
           </Button>
         </form>
       </Card>
-      <Card>
-        <h2 className="text-xl font-black text-navy">Recent awards</h2>
-        <ul className="mt-4 space-y-2">
-          {todayGrants.map((g) => (
-            <li key={g.id} className="flex justify-between rounded-2xl bg-white px-4 py-3">
-              <span className="font-bold text-navy">
-                {names[g.studentId]} · {g.reason}
-              </span>
-              <span className="font-black text-gold">+{g.amount}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <h2 className="font-semibold text-navy">Conversion</h2>
+          <p className="mt-2 text-sm text-muted">
+            1 token becomes {formatMoney(classroom.tokenCashRate)} when a student allocates it to the market.
+          </p>
+        </Card>
+        <Card>
+          <h2 className="font-semibold text-navy">Recent awards</h2>
+          <ul className="mt-4 space-y-3">
+            {todayGrants.length === 0 ? (
+              <li className="text-sm text-muted">No awards yet.</li>
+            ) : (
+              todayGrants.map((g) => (
+                <li key={g.id} className="flex justify-between text-sm">
+                  <span className="font-medium">
+                    {names[g.studentId]} · {g.reason}
+                  </span>
+                  <span className="font-semibold text-mint">+{formatTokens(g.amount)}</span>
+                </li>
+              ))
+            )}
+          </ul>
+        </Card>
+      </div>
     </div>
   );
 }

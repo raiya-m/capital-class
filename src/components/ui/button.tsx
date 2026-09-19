@@ -3,12 +3,12 @@ import type { ButtonHTMLAttributes } from "react";
 
 const styles = {
   primary:
-    "bg-navy text-white hover:bg-[#16314f] shadow-[0_4px_0_#12263f]",
-  gold: "bg-gold text-navy hover:bg-[#d4a71c] shadow-[0_4px_0_#b8860b]",
-  sky: "bg-sky text-white hover:bg-[#2f86c9] shadow-[0_4px_0_#246a9e]",
-  leaf: "bg-leaf text-white hover:bg-[#26855a] shadow-[0_4px_0_#1d6a47]",
-  ghost: "bg-white/70 text-navy border-2 border-navy/15 hover:bg-white",
-  danger: "bg-coral text-white hover:bg-[#d44b3b] shadow-[0_4px_0_#b83c2e]",
+    "bg-mint text-white hover:bg-[#2db57a] shadow-none",
+  gold: "bg-mint text-white hover:bg-[#2db57a]",
+  sky: "bg-navy text-white hover:bg-[#111821]",
+  leaf: "bg-mint text-white hover:bg-[#2db57a]",
+  ghost: "bg-[#F3F5F4] text-navy hover:bg-[#e8ecea]",
+  danger: "bg-white text-coral border border-coral/20 hover:bg-coral/5",
 };
 
 export function Button({
@@ -19,7 +19,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition active:translate-y-0.5 active:shadow-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-base font-semibold transition disabled:opacity-50 cursor-pointer",
         styles[tone],
         className,
       )}

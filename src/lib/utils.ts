@@ -6,19 +6,25 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatMoney(amount: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(Math.round(amount));
+  return amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
 
 export function formatMoneyExact(amount: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+export function formatTokens(amount: number) {
+  const n = Math.round(amount);
+  return `${n} ${n === 1 ? "token" : "tokens"}`;
+}
+
+export function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
 }
 
 export function formatPct(value: number) {

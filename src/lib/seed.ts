@@ -13,14 +13,7 @@ import type {
 
 const CLASSROOM_ID = "class-room-4b";
 const TEACHER_ID = "profile-teacher";
-
-export const SECTORS: Sector[] = [
-  { slug: "technology", name: "Technology", emoji: "💻", color: "#3B9AE1", price: 112 },
-  { slug: "agriculture", name: "Agriculture", emoji: "🌾", color: "#3D9A6A", price: 97 },
-  { slug: "transportation", name: "Transportation", emoji: "🚚", color: "#E8B923", price: 104 },
-  { slug: "energy", name: "Energy", emoji: "⚡", color: "#E85D4C", price: 108 },
-  { slug: "healthcare", name: "Healthcare", emoji: "🩺", color: "#8B5CF6", price: 101 },
-];
+const ADMIN_ID = "profile-admin";
 
 const students: { id: string; name: string; email: string }[] = [
   { id: "profile-mia", name: "Mia Chen", email: "mia@capitalclass.local" },
@@ -31,17 +24,53 @@ const students: { id: string; name: string; email: string }[] = [
   { id: "profile-ava", name: "Ava Brooks", email: "ava@capitalclass.local" },
 ];
 
-function history(): PricePoint[] {
-  const paths: Record<string, number[]> = {
-    technology: [100, 102, 101, 105, 108, 107, 110, 112],
-    agriculture: [100, 99, 101, 100, 98, 96, 95, 97],
-    transportation: [100, 101, 103, 102, 104, 106, 105, 104],
-    energy: [100, 103, 104, 102, 106, 109, 107, 108],
-    healthcare: [100, 100, 102, 103, 101, 99, 100, 101],
+function mulberry(seed: number) {
+  let t = seed + 0x6d2b79f5;
+  return () => {
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+function realisticWalk(start: number, days: number, vol: number, seed: number, dumps: number[]) {
+  const rand = mulberry(seed);
+  const prices = [Math.round(start * 100) / 100];
+  for (let i = 1; i < days; i++) {
+    let step = (rand() - 0.5) * vol * 2.4;
+    if (dumps.includes(i + 1)) step = -0.035 - rand() * 0.045;
+    else if (i % 11 === 4) step = 0.028 + rand() * 0.025;
+    else if (i % 8 === 1) step = -0.012 - rand() * 0.02;
+    const next = Math.max(58, Math.min(172, prices[i - 1] * (1 + step)));
+    prices.push(Math.round(next * 100) / 100);
+  }
+  return prices;
+}
+
+const WALK_SPECS: { slug: Sector["slug"]; start: number; vol: number; seed: number; dumps: number[] }[] = [
+  { slug: "technology", start: 121, vol: 0.017, seed: 11, dumps: [8, 21, 34, 45] },
+  { slug: "agriculture", start: 112, vol: 0.019, seed: 23, dumps: [5, 17, 29, 41] },
+  { slug: "transportation", start: 104, vol: 0.016, seed: 37, dumps: [11, 24, 38] },
+  { slug: "energy", start: 126, vol: 0.02, seed: 41, dumps: [6, 18, 32, 46] },
+  { slug: "healthcare", start: 98, vol: 0.014, seed: 53, dumps: [13, 27, 43] },
+];
+
+const WALKS: Record<string, number[]> = Object.fromEntries(
+  WALK_SPECS.map((spec) => [spec.slug, realisticWalk(spec.start, 48, spec.vol, spec.seed, spec.dumps)]),
+);
+
+export const SECTORS: Sector[] = [
+  { slug: "technology", name: "Technology", ticker: "CC-TECH", emoji: "", color: "#3B9AE1", price: WALKS.technology.at(-1)! },
+  { slug: "agriculture", name: "Agriculture", ticker: "CC-FARM", emoji: "", color: "#3D9A6A", price: WALKS.agriculture.at(-1)! },
+  { slug: "transportation", name: "Transportation", ticker: "CC-MOVE", emoji: "", color: "#E8B923", price: WALKS.transportation.at(-1)! },
+  { slug: "energy", name: "Energy", ticker: "CC-PWR", emoji: "", color: "#E85D4C", price: WALKS.energy.at(-1)! },
+  { slug: "healthcare", name: "Healthcare", ticker: "CC-CARE", emoji: "", color: "#8B5CF6", price: WALKS.healthcare.at(-1)! },
+];
+
+function history(): PricePoint[] {
   const points: PricePoint[] = [];
   for (const sector of SECTORS) {
-    paths[sector.slug].forEach((price, i) => {
+    WALKS[sector.slug].forEach((price, i) => {
       points.push({ sectorSlug: sector.slug, day: i + 1, price });
     });
   }
@@ -53,7 +82,7 @@ export const POWERUPS: Powerup[] = [
     id: "pu-double",
     name: "Lucky Lightning",
     description: "Double your profits on the next market day.",
-    emoji: "⚡",
+    emoji: "",
     kind: "double_gain",
     costCash: 150,
   },
@@ -61,7 +90,7 @@ export const POWERUPS: Powerup[] = [
     id: "pu-shield",
     name: "Safety Net",
     description: "If you lose money next market day, keep half of the loss.",
-    emoji: "🛡️",
+    emoji: "",
     kind: "half_loss",
     costCash: 120,
   },
@@ -77,9 +106,20 @@ export function createSeed(): StoreData {
     tokenCashRate: 100,
     goalReturnPct: 1.2,
     goalDeadline: "2026-10-31",
-    marketDay: 8,
-    baselineClassValue: 5000,
+    marketDay: 48,
+    baselineClassValue: 10000,
     pendingTick: null,
+    lastIntradayAt: 0,
+    intradayStep: 0,
+  };
+
+  const admin: Profile = {
+    id: ADMIN_ID,
+    classroomId: null,
+    role: "admin",
+    displayName: "Alex Rivera",
+    email: "admin@capitalclass.local",
+    passwordHash: hashPassword("admin"),
   };
 
   const teacher: Profile = {
@@ -92,6 +132,7 @@ export function createSeed(): StoreData {
   };
 
   const profiles: Profile[] = [
+    admin,
     teacher,
     ...students.map((s) => ({
       id: s.id,
@@ -108,18 +149,8 @@ export function createSeed(): StoreData {
     unspentTokens: [4, 2, 6, 1, 3, 5][i],
     savingsTokens: [8, 12, 3, 15, 6, 9][i],
     investmentCash: [240, 80, 510, 40, 190, 330][i],
-    lastSeenMarketDay: s.id === "profile-mia" ? 7 : 8,
-    lastTickSummary:
-      s.id === "profile-mia"
-        ? {
-            day: 8,
-            portfolioDelta: 42,
-            powerupNotes: ["Lucky Lightning is ready for the next market day."],
-            qotdCorrect: null,
-            rank: 2,
-            classmateCount: 6,
-          }
-        : null,
+    lastSeenMarketDay: 48,
+    lastTickSummary: null,
   }));
 
   const holdings: Holding[] = [
@@ -143,7 +174,7 @@ export function createSeed(): StoreData {
       title: "Sticker Pack",
       description: "A shiny pack of classroom stickers.",
       tokenCost: 4,
-      emoji: "⭐",
+      emoji: "",
       active: true,
     },
     {
@@ -152,7 +183,7 @@ export function createSeed(): StoreData {
       title: "Homework Pass",
       description: "Skip one homework assignment this week.",
       tokenCost: 12,
-      emoji: "🎫",
+      emoji: "",
       active: true,
     },
     {
@@ -161,7 +192,7 @@ export function createSeed(): StoreData {
       title: "Line Leader",
       description: "Be first in line for a day.",
       tokenCost: 6,
-      emoji: "🚶",
+      emoji: "",
       active: true,
     },
     {
@@ -170,12 +201,13 @@ export function createSeed(): StoreData {
       title: "Extra Recess",
       description: "Five bonus minutes of recess for you.",
       tokenCost: 10,
-      emoji: "🏀",
+      emoji: "",
       active: true,
     },
   ];
 
   return {
+    version: 11,
     classrooms: [classroom],
     profiles,
     wallets,
@@ -199,39 +231,39 @@ export function createSeed(): StoreData {
         createdAt: new Date().toISOString(),
       },
     ],
-    sectors: SECTORS,
+    sectors: SECTORS.map((s) => ({ ...s })),
     prices: history(),
     news: [
       {
         id: "news-1",
         classroomId: CLASSROOM_ID,
-        day: 8,
-        headline: "Robot helpers roll into school libraries",
-        body: "A friendly fleet of book-finding robots made reading time faster. Tech workshops around town are buzzing.",
-        impacts: { technology: 0.03, healthcare: 0.01 },
+        day: 48,
+        headline: "Robot book-finders zip through the library",
+        body: "A friendly fleet of shelf robots handed kids the right books in seconds. Coding clubs and gadget shops around town are buzzing.",
+        impacts: { technology: 0.041, healthcare: 0.008 },
       },
       {
         id: "news-2",
         classroomId: CLASSROOM_ID,
-        day: 8,
-        headline: "Rain delays the giant pumpkin harvest",
-        body: "Farmers waited extra days to pick prize pumpkins. Grocery shops still have plenty of apples, though.",
-        impacts: { agriculture: -0.02 },
+        day: 48,
+        headline: "Prize pumpkins wait an extra sunny day",
+        body: "Farmers let giant pumpkins ripen on the vine. Smoothie shops still have berries, but farm stalls were quieter this morning.",
+        impacts: { agriculture: -0.027 },
       },
       {
         id: "news-3",
         classroomId: CLASSROOM_ID,
-        day: 8,
-        headline: "New bike lanes connect three neighborhoods",
-        body: "Families can ride to parks more safely. Bus companies are planning brighter, quieter routes too.",
-        impacts: { transportation: 0.02, energy: 0.01 },
+        day: 48,
+        headline: "New bike lanes link three neighborhoods",
+        body: "Families can roll to parks more easily. Bus barns are testing quieter electric routes for field trips.",
+        impacts: { transportation: 0.022, energy: 0.014 },
       },
     ],
     questions: [
       {
-        id: "q-8",
+        id: "q-48",
         classroomId: CLASSROOM_ID,
-        day: 8,
+        day: 48,
         prompt: "After today's news, which sector is most likely to rise?",
         options: SECTORS.map((s) => ({ sector: s.slug, label: s.name })),
         correctSector: "technology",

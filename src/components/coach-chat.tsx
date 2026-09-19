@@ -6,7 +6,8 @@ import { Input } from "./ui/input";
 
 const TIPS = [
   "Diversify: try not to put every token into one sector.",
-  "Read the news first. The question of the day often follows the biggest story.",
+  "Read the incident bulletin. The sector with the green chip usually pops next.",
+  "Prices wiggle every few seconds like a real tape. News incidents make the bigger jumps.",
   "Keep some savings tokens if you want a sticker this week.",
   "A Safety Net is handy before a risky market day.",
   "Prices here are pretend. The skill is noticing cause and effect.",
@@ -33,7 +34,7 @@ export function CoachChat() {
           <div
             key={i}
             className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm font-medium ${
-              m.role === "coach" ? "bg-navy text-white" : "ml-auto bg-gold text-navy"
+              m.role === "coach" ? "bg-navy text-white" : "ml-auto bg-mint text-white"
             }`}
           >
             {m.text}

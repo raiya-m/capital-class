@@ -10,6 +10,12 @@ export function priceMap(data: StoreData) {
   return Object.fromEntries(data.sectors.map((s) => [s.slug, s.price])) as Record<SectorSlug, number>;
 }
 
+export function capitalClassIndex(prices: Record<string, number>) {
+  const vals = Object.values(prices);
+  if (!vals.length) return 0;
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
+}
+
 export function portfolioValue(wallet: Wallet, holdings: Holding[], prices: Record<string, number>, studentId: string) {
   return wallet.investmentCash + holdingValue(holdings, prices, studentId);
 }

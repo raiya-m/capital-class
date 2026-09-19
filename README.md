@@ -1,6 +1,6 @@
-# Capital Class
+# CapitalClass
 
-HackMIT classroom economy: teachers award tokens for good choices. Students save for rewards, or invest in a five-sector practice market driven by kid-safe news.
+HackMIT classroom economy: teachers award tokens. Students save, redeem rewards, or trade five live indexes. Kid-safe news incidents move the tape like a real market.
 
 ## Demo logins
 
@@ -9,7 +9,18 @@ HackMIT classroom economy: teachers award tokens for good choices. Students save
 | Teacher | teacher@capitalclass.local | teacher |
 | Student | mia@capitalclass.local | student |
 
-Other seeded students: `jordan`, `sam`, `priya`, `leo`, `ava` @ `capitalclass.local` (password `student`). Join code **CLASS4B**.
+Join code **CLASS4B**. Teacher flow: award tokens, then publish a news incident on **Market and News**. Students allocate tokens, trade, and redeem rewards from savings.
+
+## Voice (Deepgram)
+
+Add this to `.env.local` and restart `npm run dev`:
+
+```
+DEEPGRAM_API_KEY=your_key
+DEEPGRAM_TTS_MODEL=aura-2-asteria-en
+```
+
+Coach **Talk** transcribes with Deepgram, and every **Hear bulletin** button uses Deepgram Aura speech. Without a key, the browser speaker still reads.
 
 ## Run locally
 
@@ -18,18 +29,5 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The first run writes a seeded classroom to `.data/store.json`.
+Open [http://localhost:3000](http://localhost:3000).
 
-Copy `.env.example` to `.env.local` if you want OpenAI-generated news (`OPENAI_API_KEY`). Without a key, market days use rotating classroom-safe stories.
-
-## Supabase
-
-The live demo uses a file-backed store so the hackathon app runs without cloud credentials. The same tables, RLS, and sector seed live in [`supabase/schema.sql`](supabase/schema.sql). To move production data to Supabase:
-
-1. Create a project and paste `supabase/schema.sql` into the SQL editor.
-2. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-3. Client helpers are in `src/lib/supabase/`.
-
-## Stack
-
-Next.js App Router, Tailwind, cookie sessions, optional OpenAI news, Recharts for sector trends.

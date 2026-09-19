@@ -1,12 +1,15 @@
 "use server";
 
-import { login, signup, signOut } from "./auth";
+import { login, signup, signOut, requireRole, homeFor } from "./auth";
 import { applyStudentTick, buildTickSummary, classStats, priceMap } from "./market";
-import { generateTick } from "./news";
+import { applyIntradayNoise, generateTick, incidentFromTeacher } from "./news";
+import { previousClose } from "./trends";
 import { requireProfile } from "./auth";
 import { updateStore, resetStore } from "./store";
 import type { Role, SectorSlug } from "./types";
-import { uid } from "./utils";
+import { joinCode, uid } from "./utils";
+import { hashPassword } from "./hash";
+import { SECTORS } from "./seed";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -18,7 +21,8 @@ export async function loginAction(formData: FormData) {
   const result = await login(String(formData.get("email") ?? ""), String(formData.get("password") ?? ""));
   if ("error" in result && result.error) return result.error;
   const profile = "profile" in result ? result.profile : null;
-  redirect(profile?.role === "teacher" ? "/teacher/summary" : "/student/portfolio");
+  if (!profile) return "Could not sign in.";
+  redirect(homeFor(profile.role));
 }
 
 export async function signupAction(formData: FormData) {
@@ -33,7 +37,8 @@ export async function signupAction(formData: FormData) {
   });
   if ("error" in result && result.error) return result.error;
   const profile = "profile" in result ? result.profile : null;
-  redirect(profile?.role === "teacher" ? "/teacher/summary" : "/student/portfolio");
+  if (!profile) return "Could not create the account.";
+  redirect(homeFor(profile.role));
 }
 
 export async function signOutAction() {
@@ -70,8 +75,12 @@ export async function grantTokens(formData: FormData) {
 
 export async function allocateTokens(formData: FormData) {
   const student = await requireProfile();
-  const savings = Number(formData.get("savings") ?? 0);
-  const invest = Number(formData.get("invest") ?? 0);
+  const destination = String(formData.get("destination") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+  let savings = Number(formData.get("savings") ?? 0);
+  let invest = Number(formData.get("invest") ?? 0);
+  if (destination === "savings" && amount > 0) savings = amount;
+  if (destination === "invest" && amount > 0) invest = amount;
   await updateStore((data) => {
     const wallet = data.wallets.find((w) => w.profileId === student.id);
     const classroom = data.classrooms.find((c) => c.id === student.classroomId);
@@ -91,7 +100,7 @@ export async function upsertReward(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const emoji = String(formData.get("emoji") ?? "🎁").trim() || "🎁";
+  const emoji = String(formData.get("emoji") ?? "").trim();
   const tokenCost = Number(formData.get("tokenCost"));
   if (!title || !tokenCost) return;
 
@@ -261,6 +270,24 @@ export async function previewMarketDay() {
   refresh();
 }
 
+export async function analyzeTeacherIncident(formData: FormData) {
+  const teacher = await requireProfile();
+  if (teacher.role !== "teacher") return;
+  const incident = String(formData.get("incident") ?? "").trim();
+  if (incident.length < 8) return;
+  await updateStore(async (data) => {
+    const classroom = data.classrooms.find((c) => c.id === teacher.classroomId);
+    if (!classroom) return;
+    classroom.pendingTick = await incidentFromTeacher(incident, priceMap(data));
+  });
+  refresh();
+}
+
+export async function publishTeacherIncident(formData: FormData) {
+  await analyzeTeacherIncident(formData);
+  await publishMarketDay();
+}
+
 export async function publishMarketDay() {
   const teacher = await requireProfile();
   await updateStore((data) => {
@@ -269,7 +296,8 @@ export async function publishMarketDay() {
     const oldPrices = { ...priceMap(data) };
     const nextDay = classroom.marketDay + 1;
     for (const sector of data.sectors) {
-      sector.price = classroom.pendingTick.projectedPrices[sector.slug];
+      const next = classroom.pendingTick.projectedPrices[sector.slug];
+      if (typeof next === "number") sector.price = next;
       data.prices.push({ sectorSlug: sector.slug, day: nextDay, price: sector.price });
     }
     for (const item of classroom.pendingTick.news) {
@@ -287,6 +315,7 @@ export async function publishMarketDay() {
       ...classroom.pendingTick.question,
     });
     classroom.marketDay = nextDay;
+    classroom.intradayStep = 0;
 
     const after = classStats(data, classroom.id);
     for (const row of after.students) {
@@ -307,6 +336,29 @@ export async function publishMarketDay() {
   refresh();
 }
 
+export async function playNewsIncident() {
+  await previewMarketDay();
+  await publishMarketDay();
+}
+
+export async function tickMarket() {
+  const quotes = await updateStore((data) => {
+    const closes = Object.fromEntries(
+      data.sectors.map((s) => [s.slug, previousClose(data.prices, s.slug, s.price)]),
+    );
+    applyIntradayNoise(data);
+    return data.sectors.map((s) => ({
+      slug: s.slug,
+      ticker: s.ticker,
+      name: s.name,
+      price: s.price,
+      color: s.color,
+      prevClose: closes[s.slug] ?? s.price,
+    }));
+  });
+  return quotes;
+}
+
 export async function ackEndOfDay() {
   const student = await requireProfile();
   await updateStore((data) => {
@@ -322,4 +374,146 @@ export async function resetDemoAction() {
   await resetStore();
   refresh();
   redirect("/login");
+}
+
+export async function updateAccount(formData: FormData) {
+  const profile = await requireProfile();
+  const displayName = String(formData.get("displayName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (!displayName || !email) return "Name and email are required.";
+
+  const error = await updateStore((data) => {
+    if (data.profiles.some((p) => p.id !== profile.id && p.email.toLowerCase() === email)) {
+      return "That email is already in use.";
+    }
+    const row = data.profiles.find((p) => p.id === profile.id);
+    if (!row) return "Account not found.";
+    row.displayName = displayName;
+    row.email = email;
+    if (password) row.passwordHash = hashPassword(password);
+    return null;
+  });
+  if (error) return error;
+  refresh();
+}
+
+export async function createTeacher(formData: FormData) {
+  await requireRole("admin");
+  const displayName = String(formData.get("displayName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const classroomName = String(formData.get("classroomName") ?? "").trim();
+  if (!displayName || !email || !password) return "Name, email, and password are required.";
+
+  const error = await updateStore((data) => {
+    if (data.profiles.some((p) => p.email.toLowerCase() === email)) return "That email is already in use.";
+    const teacherId = uid("profile-");
+    const classroomId = uid("class-");
+    data.classrooms.push({
+      id: classroomId,
+      teacherId,
+      name: classroomName || `${displayName}'s class`,
+      joinCode: joinCode(),
+      tokenCashRate: 100,
+      goalReturnPct: 1.2,
+      goalDeadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10),
+      marketDay: 1,
+      baselineClassValue: 0,
+      pendingTick: null,
+      lastIntradayAt: 0,
+      intradayStep: 0,
+    });
+    data.profiles.push({
+      id: teacherId,
+      classroomId,
+      role: "teacher",
+      displayName,
+      email,
+      passwordHash: hashPassword(password),
+    });
+    if (data.sectors.length === 0) {
+      data.sectors = SECTORS.map((s) => ({ ...s, price: 100 }));
+    }
+    return null;
+  });
+  if (error) return error;
+  refresh();
+}
+
+export async function removeTeacher(formData: FormData) {
+  await requireRole("admin");
+  const teacherId = String(formData.get("teacherId") ?? "");
+  if (!teacherId) return;
+  await updateStore((data) => {
+    const teacher = data.profiles.find((p) => p.id === teacherId && p.role === "teacher");
+    if (!teacher) return;
+    const classroomId = teacher.classroomId;
+    const studentIds = data.profiles.filter((p) => p.classroomId === classroomId && p.role === "student").map((p) => p.id);
+    data.profiles = data.profiles.filter((p) => p.id !== teacherId && !studentIds.includes(p.id));
+    data.wallets = data.wallets.filter((w) => !studentIds.includes(w.profileId));
+    data.holdings = data.holdings.filter((h) => !studentIds.includes(h.studentId));
+    data.trades = data.trades.filter((t) => !studentIds.includes(t.studentId));
+    data.classrooms = data.classrooms.filter((c) => c.id !== classroomId);
+    data.news = data.news.filter((n) => n.classroomId !== classroomId);
+    data.questions = data.questions.filter((q) => q.classroomId !== classroomId);
+    data.rewards = data.rewards.filter((r) => r.classroomId !== classroomId);
+    data.redemptions = data.redemptions.filter((r) => r.classroomId !== classroomId);
+  });
+  refresh();
+}
+
+export async function createStudent(formData: FormData) {
+  const teacher = await requireRole("teacher");
+  if (!teacher.classroomId) return "No classroom assigned.";
+  const displayName = String(formData.get("displayName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (!displayName || !email || !password) return "Name, email, and password are required.";
+
+  const error = await updateStore((data) => {
+    if (data.profiles.some((p) => p.email.toLowerCase() === email)) return "That email is already in use.";
+    const classroom = data.classrooms.find((c) => c.id === teacher.classroomId);
+    if (!classroom) return "Classroom not found.";
+    const profileId = uid("profile-");
+    data.profiles.push({
+      id: profileId,
+      classroomId: classroom.id,
+      role: "student",
+      displayName,
+      email,
+      passwordHash: hashPassword(password),
+    });
+    data.wallets.push({
+      profileId,
+      unspentTokens: 0,
+      savingsTokens: 0,
+      investmentCash: 0,
+      lastSeenMarketDay: classroom.marketDay,
+      lastTickSummary: null,
+    });
+    return null;
+  });
+  if (error) return error;
+  refresh();
+}
+
+export async function removeStudent(formData: FormData) {
+  const teacher = await requireRole("teacher");
+  const studentId = String(formData.get("studentId") ?? "");
+  if (!studentId || !teacher.classroomId) return;
+  await updateStore((data) => {
+    const student = data.profiles.find(
+      (p) => p.id === studentId && p.role === "student" && p.classroomId === teacher.classroomId,
+    );
+    if (!student) return;
+    data.profiles = data.profiles.filter((p) => p.id !== studentId);
+    data.wallets = data.wallets.filter((w) => w.profileId !== studentId);
+    data.holdings = data.holdings.filter((h) => h.studentId !== studentId);
+    data.trades = data.trades.filter((t) => t.studentId !== studentId);
+    data.answers = data.answers.filter((a) => a.studentId !== studentId);
+    data.redemptions = data.redemptions.filter((r) => r.studentId !== studentId);
+    data.studentPowerups = data.studentPowerups.filter((p) => p.studentId !== studentId);
+  });
+  refresh();
 }

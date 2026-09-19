@@ -1,4 +1,4 @@
-export type Role = "teacher" | "student";
+export type Role = "admin" | "teacher" | "student";
 
 export type RedemptionStatus = "pending" | "approved" | "denied";
 
@@ -20,6 +20,8 @@ export type Classroom = {
   marketDay: number;
   baselineClassValue: number;
   pendingTick: PendingTick | null;
+  lastIntradayAt: number;
+  intradayStep: number;
 };
 
 export type Profile = {
@@ -53,6 +55,7 @@ export type TokenLedgerEntry = {
 export type Sector = {
   slug: SectorSlug;
   name: string;
+  ticker: string;
   emoji: string;
   color: string;
   price: number;
@@ -155,10 +158,12 @@ export type TickSummary = {
 export type PendingTick = {
   news: Omit<NewsItem, "id" | "classroomId" | "day">[];
   question: Omit<DailyQuestion, "id" | "classroomId" | "day">;
-  projectedPrices: Record<SectorSlug, number>;
+  projectedPrices: Partial<Record<SectorSlug, number>>;
+  rationale?: string;
 };
 
 export type StoreData = {
+  version: number;
   classrooms: Classroom[];
   profiles: Profile[];
   wallets: Wallet[];

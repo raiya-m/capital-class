@@ -1,28 +1,37 @@
-import Link from "next/link";
 import { LoginForm } from "@/components/login-form";
-import { Card } from "@/components/ui/card";
+import { BrandMark } from "@/components/brand-mark";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">
-      <Card>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky">Welcome back</p>
-        <h1 className="mt-2 text-3xl font-black text-navy">Sign in to Capital Class</h1>
-        <p className="mt-3 text-sm font-medium text-navy/70">
-          Demo teacher: <b>teacher@capitalclass.local</b> / <b>teacher</b>
-          <br />
-          Demo student: <b>mia@capitalclass.local</b> / <b>student</b>
+    <main className="grid min-h-screen w-screen md:grid-cols-2">
+      <section className="bg-navy p-10 text-white md:p-16">
+        <div className="flex items-center gap-3">
+          <BrandMark size={36} />
+          <span className="text-lg font-semibold">CapitalClass</span>
+        </div>
+        <h1 className="mt-16 max-w-sm text-4xl font-semibold leading-tight">
+          Good choices earn tokens. News moves the market.
+        </h1>
+        <p className="mt-5 max-w-sm text-base leading-7 text-white/80">
+          Administrators manage who can teach. Teachers award tokens and add students. Students split tokens into savings
+          and market dollars, then read the bulletin before they trade. Practice money only.
         </p>
-        <div className="mt-6">
+        <p className="mt-16 text-base text-white/50">Practice market · classroom-safe incidents</p>
+      </section>
+      <section className="flex flex-col justify-center bg-white p-10 md:p-16">
+        <h2 className="text-2xl font-semibold text-navy">Welcome to CapitalClass</h2>
+        <p className="mt-1 text-sm text-muted">Choose your path to enter the classroom economy.</p>
+        <div className="mt-8">
           <LoginForm />
         </div>
-        <p className="mt-6 text-sm font-medium text-navy/70">
-          New here?{" "}
-          <Link className="font-bold text-sky" href="/signup">
-            Create an account
+        <p className="mt-6 text-sm text-muted">
+          Student with a join code?{" "}
+          <Link className="font-semibold text-[#2db57a]" href="/signup">
+            Join a class
           </Link>
         </p>
-      </Card>
+      </section>
     </main>
   );
 }

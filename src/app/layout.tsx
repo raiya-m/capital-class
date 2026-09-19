@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { Fredoka } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const display = Fredoka({
+const sans = Inter({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: "Capital Class",
-  description: "Classroom tokens, rewards, and a kid-safe stock market.",
+  title: "CapitalClass",
+  description: "Classroom tokens, a live practice market, and kid-safe news incidents.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${display.variable} h-full antialiased`}>
-      <body className="dot-grid min-h-full font-sans text-ink">{children}</body>
+    <html lang="en" className={`${sans.variable} ${sans.className} h-full antialiased`}>
+      <body className="min-h-full bg-white font-sans text-ink">{children}</body>
     </html>
   );
 }

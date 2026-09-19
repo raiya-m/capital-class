@@ -1,26 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #fff6e8;
-  --ink: #1d2a44;
-  --navy: #1e3a5f;
-  --gold: #e8b923;
-  --sky: #3b9ae1;
-  --leaf: #2f9e6a;
-  --coral: #e85d4c;
-  --card: #fffdf8;
+  --paper: #e8f0ec;
+  --ink: #1c2430;
+  --navy: #1b2330;
+  --mint: #3ecf8e;
+  --mint-dark: #2db57a;
+  --gold: #f59e0b;
+  --sky: #5b8def;
+  --leaf: #3ecf8e;
+  --coral: #ef5b5b;
+  --card: #ffffff;
+  --muted: #3d4754;
 }
 
 @theme inline {
   --color-paper: var(--paper);
   --color-ink: var(--ink);
   --color-navy: var(--navy);
+  --color-mint: var(--mint);
   --color-gold: var(--gold);
   --color-sky: var(--sky);
   --color-leaf: var(--leaf);
   --color-coral: var(--coral);
   --color-card: var(--card);
-  --font-sans: var(--font-display);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -29,14 +34,34 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(circle at 10% 10%, #ffe7b8 0, transparent 28%),
-    radial-gradient(circle at 90% 0%, #cde9ff 0, transparent 26%),
-    var(--paper);
+  background: #ffffff;
   color: var(--ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
 }
 
-.dot-grid {
-  background-image: radial-gradient(rgba(30, 58, 95, 0.08) 1px, transparent 1px);
-  background-size: 18px 18px;
+button,
+input,
+select,
+textarea,
+svg text {
+  font: inherit;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.eyebrow {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+select {
+  cursor: pointer;
 }

@@ -1,11 +1,16 @@
 import { cookies } from "next/headers";
 import { readStore, updateStore } from "./store";
 import { hashPassword, verifyPassword } from "./hash";
-import { joinCode, uid } from "./utils";
+import { uid } from "./utils";
 import type { Profile, Role } from "./types";
-import { SECTORS } from "./seed";
 
 const COOKIE = "cc_session";
+
+export function homeFor(role: Role) {
+  if (role === "admin") return "/admin";
+  if (role === "teacher") return "/teacher/summary";
+  return "/student/portfolio";
+}
 
 export async function getSessionProfile(): Promise<Profile | null> {
   const jar = await cookies();
@@ -18,6 +23,12 @@ export async function getSessionProfile(): Promise<Profile | null> {
 export async function requireProfile() {
   const profile = await getSessionProfile();
   if (!profile) throw new Error("Not signed in");
+  return profile;
+}
+
+export async function requireRole(...roles: Role[]) {
+  const profile = await requireProfile();
+  if (!roles.includes(profile.role)) throw new Error("Not allowed for this role");
   return profile;
 }
 
@@ -63,38 +74,12 @@ export async function signup(input: {
       return { error: "That email is already in use." };
     }
 
+    if (input.role === "admin") {
+      return { error: "Administrators are created from the admin console." };
+    }
+
     if (input.role === "teacher") {
-      const teacherId = uid("profile-");
-      const classroomId = uid("class-");
-      data.classrooms.push({
-        id: classroomId,
-        teacherId,
-        name: input.classroomName?.trim() || `${input.displayName}'s class`,
-        joinCode: joinCode(),
-        tokenCashRate: 100,
-        goalReturnPct: 1.2,
-        goalDeadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10),
-        marketDay: 1,
-        baselineClassValue: 0,
-        pendingTick: null,
-      });
-      const profile: Profile = {
-        id: teacherId,
-        classroomId,
-        role: "teacher",
-        displayName: input.displayName.trim(),
-        email: input.email.trim(),
-        passwordHash: hashPassword(input.password),
-      };
-      data.profiles.push(profile);
-      if (data.sectors.length === 0) {
-        data.sectors = SECTORS.map((s) => ({ ...s, price: 100 }));
-      }
-      for (const sector of data.sectors) {
-        data.prices.push({ sectorSlug: sector.slug, day: 1, price: sector.price });
-      }
-      await setSession(profile.id);
-      return { profile };
+      return { error: "Teachers are added by an administrator." };
     }
 
     const code = input.joinCode?.trim().toUpperCase();

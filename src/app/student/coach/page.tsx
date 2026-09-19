@@ -1,18 +1,25 @@
 import { Card } from "@/components/ui/card";
-import { CoachChat } from "@/components/coach-chat";
+import { VoiceCoach } from "@/components/voice-coach";
+import { studentContext } from "@/lib/queries";
 
-export default function CoachPage() {
+export default async function CoachPage() {
+  const { profile, rank, wallet, invested, news, holdings, data, stats } = await studentContext();
+  const top = news[0]?.headline ?? "No incident yet";
+  const names = holdings
+    .map((h) => data.sectors.find((s) => s.slug === h.sectorSlug)?.ticker)
+    .filter(Boolean)
+    .join(", ");
+  const context = `${profile.displayName} is rank ${rank} of ${stats.students.length}. Cash ${Math.round(wallet.investmentCash)} dollars, holdings ${Math.round(invested)} dollars in ${names || "cash only"}. Latest incident: ${top}.`;
+  const studioVoice = Boolean(process.env.DEEPGRAM_API_KEY);
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-4xl font-black text-navy">Coach</h1>
-        <p className="font-medium text-navy/70">
-          Practice talking about your plan. This is a classroom helper, not real financial advice.
-          Voice (ElevenLabs / Deepgram) can plug in later.
-        </p>
-      </header>
+    <div className="max-w-2xl space-y-4">
+      <p className="text-base text-muted">
+        CapitalClass Coach talks about your tape and news incidents. This is a classroom helper, not real financial
+        advice.
+      </p>
       <Card>
-        <CoachChat />
+        <VoiceCoach context={context} studioVoice={studioVoice} />
       </Card>
     </div>
   );

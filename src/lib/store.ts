@@ -1,30 +1,26 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
-import path from "path";
 import { createSeed } from "./seed";
+import { readDbPayload, writeDbPayload } from "./db";
 import type { StoreData } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
-const DATA_FILE = path.join(DATA_DIR, "store.json");
+const VERSION = 11;
 
 let cache: StoreData | null = null;
 let writing: Promise<void> = Promise.resolve();
 
-async function load(): Promise<StoreData> {
-  if (cache) return cache;
-  try {
-    const raw = await readFile(DATA_FILE, "utf8");
-    cache = JSON.parse(raw) as StoreData;
-    return cache;
-  } catch {
-    cache = createSeed();
-    await persist(cache);
-    return cache;
-  }
+function needsReset(data: StoreData) {
+  return data.version !== VERSION || !data.sectors?.[0] || !("ticker" in data.sectors[0]);
 }
 
-async function persist(data: StoreData) {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+async function load(): Promise<StoreData> {
+  if (cache && !needsReset(cache)) return cache;
+  const parsed = await readDbPayload();
+  if (!parsed || needsReset(parsed)) {
+    cache = createSeed();
+    await writeDbPayload(cache);
+    return cache;
+  }
+  cache = parsed;
+  return cache;
 }
 
 export async function readStore() {
@@ -36,7 +32,7 @@ export async function updateStore<T>(mutator: (data: StoreData) => T | Promise<T
     const data = await load();
     const result = await mutator(data);
     cache = data;
-    await persist(data);
+    await writeDbPayload(data);
     return result;
   });
   writing = run.then(
@@ -48,6 +44,6 @@ export async function updateStore<T>(mutator: (data: StoreData) => T | Promise<T
 
 export async function resetStore() {
   cache = createSeed();
-  await persist(cache);
+  await writeDbPayload(cache);
   return cache;
 }

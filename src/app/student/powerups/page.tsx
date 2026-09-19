@@ -4,38 +4,47 @@ import { formatMoney } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default async function PowerupsPage() {
   const { data, powerups, wallet } = await studentContext();
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-4xl font-black text-navy">Chance cards</h1>
-        <p className="font-medium text-navy/70">
-          Buy with investment cash. Effects apply to your results on the next published market day.
-        </p>
-      </header>
-      <p className="font-black text-navy">Cash {formatMoney(wallet.investmentCash)}</p>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="space-y-4">
+      <p className="text-base text-muted">
+        Spend investment cash on a card. It applies once, on the next published market day, then it is used up.
+      </p>
+      <p className="text-base font-semibold">
+        Cash {formatMoney(wallet.investmentCash)}
+        {wallet.investmentCash < 1 ? (
+          <>
+            {" · "}
+            <Link href="/student/tokens" className="underline">
+              Allocate tokens to get cash
+            </Link>
+          </>
+        ) : null}
+      </p>
+      <ul className="grid gap-4 sm:grid-cols-2">
         {data.powerupCatalog.map((item) => {
           const owned = powerups.find((p) => p.powerupId === item.id);
           return (
-            <Card key={item.id}>
-              <div className="text-4xl">{item.emoji}</div>
-              <h2 className="mt-2 text-2xl font-black text-navy">{item.name}</h2>
-              <p className="font-medium text-navy/70">{item.description}</p>
-              <p className="mt-2 font-black text-gold">{formatMoney(item.costCash)}</p>
+            <li key={item.id}>
+            <Card>
+              <h2 className="text-xl font-semibold text-navy">{item.name}</h2>
+              <p className="mt-1 text-base text-muted">{item.description}</p>
+              <p className="mt-3 font-semibold text-mint">{formatMoney(item.costCash)}</p>
               {owned ? <Badge className="mt-2">Ready x{owned.charges}</Badge> : null}
               <form action={buyPowerup.bind(null, item.id)} className="mt-4">
-                <Button type="submit" disabled={wallet.investmentCash < item.costCash}>
+                <Button type="submit" disabled={wallet.investmentCash < item.costCash} className="w-full">
                   Buy card
                 </Button>
               </form>
             </Card>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }
