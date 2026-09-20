@@ -16,6 +16,9 @@ function localReply(message: string, briefing: string) {
       ? `Here is today's class news: ${newsLine.replace("Today's incident bulletin: ", "")} If a story helps a sector, that is usually the one to look at. If it already jumped a lot, it is okay to wait.`
       : "Read today's class news first. Green chips mean that sector had good news. Red chips mean it had a tough day.";
   }
+  if (q.includes("convert") || q.includes("swap") || q.includes("back to savings") || q.includes("cash into")) {
+    return "You can move spare market cash back into savings tokens, one token for each full one hundred dollars. Cash inside shares has to be sold first. Just remember that moving cash out lowers your rank and the class trip fund, so it is a trade, not a freebie.";
+  }
   if (q.includes("rank") || q.includes("goal")) {
     return "The class list is about the pretend money you invested, not tokens you saved for rewards. Savings tokens buy stickers and passes. Invested dollars help the class goal.";
   }
@@ -92,6 +95,8 @@ Rules:
 - This is pretend class money. Say that if they ask about real investing.
 - Never give real financial advice, never scare them, no politics, no emojis.
 - If they are worried about a drop, normalize it: markets in class go up and down so we can learn why.
+- Students can move spare market cash back into savings tokens at the classroom rate. Whole tokens only, and only cash that is not tied up in shares, so they may need to sell first. The briefing tells you how many tokens they could move right now.
+- When they ask about that swap, give them both sides and let them pick: savings tokens buy classroom rewards, but moving cash out lowers their rank and the class field trip fund. Never tell them the choice is free, and never push them one way.
 - End with a tiny next step they can do (read the news, check one sector, keep some cash).`,
           },
           {

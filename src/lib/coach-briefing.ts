@@ -35,6 +35,7 @@ export async function liveCoachBriefing() {
   const indexOpen = trend[0]?.INDEX ?? index;
   const indexTrend = indexOpen ? (index - indexOpen) / indexOpen : 0;
   const total = wallet.investmentCash + invested;
+  const convertibleTokens = Math.floor(wallet.investmentCash / classroom.tokenCashRate);
   const target = classroom.baselineClassValue * (1 + classroom.goalReturnPct);
 
   const tape = data.sectors.map((sector) => {
@@ -93,6 +94,7 @@ export async function liveCoachBriefing() {
   return [
     `Student: ${profile.displayName}. Classroom ${classroom.name}, session ${classroom.marketDay}. Rank ${rank} of ${stats.students.length}.`,
     `Wallet: ${formatTokens(wallet.unspentTokens)} unspent, ${formatTokens(wallet.savingsTokens)} savings, cash ${formatMoneyExact(wallet.investmentCash)}, holdings ${formatMoneyExact(invested)}, total ${formatMoneyExact(total)}.`,
+    `Cash they could move back to savings right now: ${formatTokens(convertibleTokens)} (${formatMoneyExact(classroom.tokenCashRate)} per token, whole tokens only, free cash only).`,
     `Class field trip fund: ${formatMoneyExact(stats.classValue)} of ${formatMoneyExact(target)} target (${(classroom.goalReturnPct * 100).toFixed(0)}% goal).`,
     `CapitalClass Index: ${formatMoneyExact(index)}, vs chart start ${formatPct(indexTrend)}.`,
     `Live tape: ${tape.join(" | ")}`,
@@ -105,6 +107,6 @@ export async function liveCoachBriefing() {
     `Power-ups: ${ownedPower.join(", ") || "none"}`,
     `Recent trades: ${recentTrades.join("; ") || "none"}`,
     `Leaderboard: ${leaderboard.join("; ")}`,
-    "Rules: tokens are not cash. Savings tokens buy rewards. Only investment cash and shares count for rank and the class goal. News impacts move sector prices. Practice money only.",
+    `Rules: unspent tokens become savings tokens one for one, or market cash at ${formatMoneyExact(classroom.tokenCashRate)} each. Spare market cash can also go back the other way into savings tokens at the same rate, whole tokens only, and only cash that is not tied up in shares. Savings tokens buy rewards. Only investment cash and shares count for rank and the class goal, so moving cash into savings tokens lowers both their rank and the class field trip fund. News impacts move sector prices. Practice money only.`,
   ].join("\n");
 }

@@ -1,4 +1,4 @@
-import { allocateTokens, requestReward } from "@/lib/actions";
+import { allocateTokens, convertCashToSavings, requestReward } from "@/lib/actions";
 import { studentContext } from "@/lib/queries";
 import { formatMoney, formatTokens } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ export default async function StudentTokensPage() {
   const savePct = Math.round((wallet.savingsTokens / tokenTotal) * 100);
   const wealth = wallet.investmentCash + wallet.unspentTokens * classroom.tokenCashRate + wallet.savingsTokens * classroom.tokenCashRate;
   const investPct = wealth ? Math.round((wallet.investmentCash / wealth) * 100) : 0;
+  const convertibleTokens = Math.floor(wallet.investmentCash / classroom.tokenCashRate);
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -64,6 +65,22 @@ export default async function StudentTokensPage() {
           </div>
           <Button className="w-full" type="submit" disabled={wallet.unspentTokens < 1}>
             Allocate tokens
+          </Button>
+        </form>
+        <form action={convertCashToSavings} className="mt-6 space-y-3 border-t border-[#E8EEEA] pt-6">
+          <h3 className="font-semibold text-navy">Move market cash to savings</h3>
+          <p className="text-base text-muted">
+            Trade {formatMoney(classroom.tokenCashRate)} of spare market cash for 1 savings token. Whole tokens only, and
+            shares have to be sold first.
+          </p>
+          <div>
+            <Label htmlFor="tokens">How many tokens</Label>
+            <Input id="tokens" name="tokens" type="number" min={1} max={convertibleTokens} defaultValue={1} />
+          </div>
+          <Button className="w-full" tone="sky" type="submit" disabled={convertibleTokens < 1}>
+            {convertibleTokens < 1
+              ? `Need ${formatMoney(classroom.tokenCashRate)} in market cash`
+              : `Convert to savings (up to ${formatTokens(convertibleTokens)})`}
           </Button>
         </form>
       </Card>

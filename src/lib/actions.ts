@@ -94,6 +94,22 @@ export async function allocateTokens(formData: FormData) {
   refresh();
 }
 
+export async function convertCashToSavings(formData: FormData) {
+  const student = await requireProfile();
+  const tokens = Number(formData.get("tokens") ?? 0);
+  if (!Number.isInteger(tokens) || tokens < 1) return;
+  await updateStore((data) => {
+    const wallet = data.wallets.find((w) => w.profileId === student.id);
+    const classroom = data.classrooms.find((c) => c.id === student.classroomId);
+    if (!wallet || !classroom) return;
+    const cost = tokens * classroom.tokenCashRate;
+    if (cost > wallet.investmentCash) return;
+    wallet.investmentCash -= cost;
+    wallet.savingsTokens += tokens;
+  });
+  refresh();
+}
+
 export async function upsertReward(formData: FormData) {
   const teacher = await requireProfile();
   if (teacher.role !== "teacher" || !teacher.classroomId) return;

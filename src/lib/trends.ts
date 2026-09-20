@@ -10,6 +10,21 @@ export function previousClose(prices: PricePoint[], sectorSlug: string, fallback
   return dailies[0]?.price ?? fallback;
 }
 
+// The move a single market day produced: the price the tick wrote for that day,
+// against the last price recorded before it. Summing shares * (close - open) over
+// a student's holdings reproduces their TickSummary.portfolioDelta exactly.
+export function dayMove(prices: PricePoint[], sectorSlug: string, day: number) {
+  const points = prices.filter((p) => p.sectorSlug === sectorSlug).sort((a, b) => a.day - b.day);
+  const idx = points.findIndex((p) => p.day === day);
+  if (idx === -1) {
+    const last = points[points.length - 1]?.price ?? 0;
+    return { open: last, close: last };
+  }
+  const close = points[idx]!.price;
+  const open = points[idx - 1]?.price ?? close;
+  return { open, close };
+}
+
 export function buildTrendData(prices: PricePoint[], sectors: Sector[]): TrendRow[] {
   const buckets = new Map<number, TrendRow>();
   const sorted = [...prices].sort((a, b) => a.day - b.day);

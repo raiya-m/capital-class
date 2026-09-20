@@ -47,9 +47,11 @@ function micErrorMessage(err: unknown) {
 export function VoiceCoach({
   deepgram,
   openai,
+  initialQuestion,
 }: {
   deepgram?: boolean;
   openai?: boolean;
+  initialQuestion?: string;
 }) {
   const [log, setLog] = useState<Turn[]>([
     {
@@ -57,7 +59,7 @@ export function VoiceCoach({
       text: "Hi! Tap Talk, ask your question, then tap Stop. I'll listen, think like your class teacher, and read the answer out loud.",
     },
   ]);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialQuestion ?? "");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
