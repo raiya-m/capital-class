@@ -1,6 +1,6 @@
 # CapitalClass
 
-HackMIT classroom economy: teachers award tokens. Students save, redeem rewards, or trade five live indexes. Kid-safe news incidents move the tape like a real market.
+HackMIT classroom economy: teachers award tokens. Students save, redeem rewards, or trade five live indexes. Kid-safe news incidents move the tape like a real market. 
 
 ## Demo logins
 
